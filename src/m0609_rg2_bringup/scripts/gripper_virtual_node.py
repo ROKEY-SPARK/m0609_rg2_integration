@@ -46,9 +46,15 @@ class GripperVirtualNode(Node):
         elif req.command == 'o':
             target = GRIPPER_OPEN
         else:
-            res.success = False
-            res.message = f'Unknown command: {req.command!r}'
-            return res
+            # Numeric fallback: command is a float string (rad). Clamped to URDF
+            # limits. Lets demo callers do partial close (block-width grip).
+            try:
+                target = float(req.command)
+            except ValueError:
+                res.success = False
+                res.message = f'Unknown command: {req.command!r}'
+                return res
+            target = max(GRIPPER_OPEN, min(GRIPPER_CLOSED, target))
 
         with self._lock:
             self._target = target

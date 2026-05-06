@@ -19,6 +19,7 @@ def generate_launch_description():
         DeclareLaunchArgument('mode',       default_value='virtual',     description='Operation mode: real | virtual'),
         DeclareLaunchArgument('host',       default_value='127.0.0.1',   description='Robot IP (real mode)'),
         DeclareLaunchArgument('port',       default_value='12345',        description='Robot port'),
+        DeclareLaunchArgument('camera',     default_value='false',       description='Force-spawn RealSense even in virtual mode (demo opt-in)'),
     ]
 
     is_real    = PythonExpression(["'", LaunchConfiguration('mode'), "' == 'real'"])
@@ -173,8 +174,13 @@ def generate_launch_description():
         arguments=['0.0', '0.0', '0.0', '0.0', '0.0', '0.0', 'world', 'base_link'],
     )
 
-    # ── RealSense 카메라 드라이버 (real 모드만) ──────────────────────
-    is_real_camera = PythonExpression(["'", LaunchConfiguration('mode'), "' == 'real'"])
+    # ── RealSense 카메라 드라이버 (real 모드 또는 camera:=true 일 때) ──
+    # 기본은 real 모드에서만 spawn (가상 시뮬에 USB 카메라 묶지 않기 위함).
+    # 데모/홍보 영상처럼 가상 모드에서도 카메라 영상이 필요하면 camera:=true 로 opt-in.
+    camera_enabled = PythonExpression([
+        "'", LaunchConfiguration('mode'), "' == 'real' or '",
+        LaunchConfiguration('camera'), "' == 'true'"
+    ])
     realsense_node = Node(
         package='realsense2_camera',
         executable='realsense2_camera_node',
@@ -185,7 +191,7 @@ def generate_launch_description():
             'pointcloud.enable': True,
             'enable_sync': True,
         }],
-        condition=IfCondition(is_real_camera),
+        condition=IfCondition(camera_enabled),
         output='screen',
     )
 
