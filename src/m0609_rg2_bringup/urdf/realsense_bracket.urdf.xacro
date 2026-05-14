@@ -63,7 +63,7 @@
       목표: STL Z축 → tool0 −Y축 (브라켓이 옆으로 뻗도록)
       xyz: 플랜지면이 tool0 원점에 오도록
     -->
-    <origin xyz="-0.002 -0.01 0.01" rpy="0 1.5708 -1.5708"/>
+    <origin xyz="-0.002 0.0 -0.01" rpy="0 -1.5708 1.5708"/>
   </joint>
 
   <!-- ───────────── RealSense D435 매크로 include ───────────── -->
@@ -73,7 +73,7 @@
   <!--
   -->
   <xacro:sensor_d435 parent="bracket_link" name="camera" use_nominal_extrinsics="true">
-    <origin xyz="0 0.015 0.07" rpy="3.1416 0 1.5708"/>
+    <origin xyz="0.0 -0.015 0.05" rpy="3.1416 3.1416 1.5708"/>
   </xacro:sensor_d435>
 
 
