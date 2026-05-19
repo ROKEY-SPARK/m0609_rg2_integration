@@ -1,6 +1,6 @@
 import os
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, RegisterEventHandler
+from launch.actions import DeclareLaunchArgument, ExecuteProcess, RegisterEventHandler
 from launch.conditions import IfCondition
 from launch.event_handlers import OnProcessExit
 from launch.substitutions import Command, FindExecutable, LaunchConfiguration, PathJoinSubstitution, PythonExpression
@@ -41,6 +41,24 @@ def generate_launch_description():
         ],
         condition=IfCondition(is_virtual),
         output='screen',
+    )
+
+    # ── [virtual] 이전 run 잔여 에뮬레이터 컨테이너 정리 ──────────────
+    # run_drcf.sh의 중복 컨테이너 체크는 'docker ps -q'(running 상태만) 기반이라
+    # Exited 상태로 남은 --rm 미정리 컨테이너를 놓친다. 그 경우 다음 bringup의
+    # 'docker run --name dsr01_emulator'가 이름 충돌로 실패 → 에뮬레이터 미기동 →
+    # ros2_control 하드웨어 init 실패로 연쇄. run_emulator 시작 전 동명 컨테이너를
+    # 강제 제거해 launch를 idempotent하게 만든다.
+    emulator_cleanup = ExecuteProcess(
+        cmd=['bash', '-c', 'docker rm -f dsr01_emulator 2>/dev/null || true'],
+        condition=IfCondition(is_virtual),
+        output='log',
+    )
+    start_emulator = RegisterEventHandler(
+        event_handler=OnProcessExit(
+            target_action=emulator_cleanup,
+            on_exit=[run_emulator_node],
+        ),
     )
 
     # ── 커스텀 URDF (M0609 + RG2 + RealSense) ────────────────────────
@@ -205,7 +223,8 @@ def generate_launch_description():
     )
 
     return LaunchDescription(args + [
-        run_emulator_node,
+        emulator_cleanup,
+        start_emulator,
         gripper_virtual_node,
         control_node,
         joint_state_broadcaster_spawner,

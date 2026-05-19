@@ -99,7 +99,11 @@ def main(args=None):
         pass
     finally:
         node.destroy_node()
-        rclpy.shutdown()
+        # launch 종료(SIGINT) 시 rclpy 기본 시그널 핸들러가 이미 context를
+        # shutdown한 뒤 ExternalShutdownException이 올라온다 → 중복 호출 시
+        # RCLError('rcl_shutdown already called'). ok() 가드로 한 번만 호출.
+        if rclpy.ok():
+            rclpy.shutdown()
 
 
 if __name__ == '__main__':
