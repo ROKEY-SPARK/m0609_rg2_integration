@@ -30,3 +30,4 @@ src/onrobot-ros2/
 
 # 전달용 예제 패키지 (대외비)
 src/cobot1/
+src/cobot2_ws/

@@ -225,7 +225,8 @@ M0609_RG2_Integration/
     │   │   ├── default.rviz
     │   │   └── moveit.rviz
     │   ├── scripts/
-    │   │   └── gripper_joint_state_publisher.py   # onrobot_joint_states → gripper_joint_states
+    │   │   ├── gripper_joint_state_publisher.py   # onrobot_joint_states → gripper_joint_states (real)
+    │   │   └── gripper_virtual_node.py            # virtual 모드 그리퍼 서비스 + joint_states 발행
     │   └── urdf/
     │       ├── m0609_with_rg2.urdf.xacro           # 팔 + 그리퍼 통합 URDF
     │       ├── m0609_with_rg2_camera.urdf.xacro    # 팔 + 그리퍼 + 카메라 통합 URDF
