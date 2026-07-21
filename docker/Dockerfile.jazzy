@@ -1,0 +1,79 @@
+# syntax=docker/dockerfile:1.7
+#
+# ROS2 Jazzy 개발/검증 컨테이너.
+#
+# 이 워크스페이스의 타깃 런타임은 Ubuntu 24.04(noble) + ROS2 Jazzy 다. 개발 워크스테이션이
+# 22.04(jammy) 면 jazzy 를 host 에 설치할 수 없으므로(배포판 불일치) 이 이미지 안에서
+# 빌드 · 실행 · RViz 확인을 한다. 실제 noble 머신에서는 이 컨테이너 없이 그대로 colcon build.
+#
+# DSR 드라이버(doosan-robot2 jazzy 스냅샷)는 이미지에 baked 된 오버레이(/opt/dsr_ws)로 미리
+# 빌드해 둔다 — 우리 소스(/ws)만 bind-mount 해서 빠르게 재빌드하기 위함.
+
+FROM ros:jazzy-ros-base-noble
+
+ARG ROS_DISTRO=jazzy
+ENV ROS_DISTRO=${ROS_DISTRO}
+SHELL ["/bin/bash", "-eu", "-o", "pipefail", "-c"]
+ARG DEBIAN_FRONTEND=noninteractive
+
+# DSR 빌드 의존 + 이 워크스페이스 런타임(rviz2 / description / ros2_control).
+# docker.io 는 CLI 만 필요 — virtual 모드에서 run_emulator 가 host docker.sock 으로
+# DRCF 에뮬레이터를 형제 컨테이너로 띄운다.
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends \
+      git wget libpoco-dev libyaml-cpp-dev \
+      docker.io \
+      python3-numpy python3-scipy python3-pymodbus \
+      ros-${ROS_DISTRO}-rviz2 \
+      ros-${ROS_DISTRO}-robot-state-publisher \
+      ros-${ROS_DISTRO}-joint-state-publisher \
+      ros-${ROS_DISTRO}-joint-state-publisher-gui \
+      ros-${ROS_DISTRO}-xacro \
+      ros-${ROS_DISTRO}-tf2-ros \
+      ros-${ROS_DISTRO}-realsense2-description \
+      ros-${ROS_DISTRO}-realsense2-camera \
+      ros-${ROS_DISTRO}-ros2-control \
+      ros-${ROS_DISTRO}-ros2-controllers \
+      ros-${ROS_DISTRO}-velocity-controllers \
+      ros-${ROS_DISTRO}-control-msgs \
+      ros-${ROS_DISTRO}-realtime-tools \
+      ros-${ROS_DISTRO}-moveit-msgs \
+      ros-${ROS_DISTRO}-kdl-parser \
+      ros-${ROS_DISTRO}-eigen3-cmake-module \
+      ros-${ROS_DISTRO}-example-interfaces \
+ && rm -rf /var/lib/apt/lists/*
+
+# 소스 고정(pin): ROKEY-SPARK fork 의 기본 브랜치(= 검증된 jazzy 스냅샷).
+ARG DSR_REPO=https://github.com/ROKEY-SPARK/doosan-robot2_jazzy.git
+RUN mkdir -p /opt/dsr_ws/src \
+ && git clone --depth 1 "${DSR_REPO}" /opt/dsr_ws/src/doosan-robot2
+
+# doosan-robot2(jazzy) 소스 호환 패치 2건 — 둘 다 멱등.
+#  (1) dsr_msgs2 가 만드는 실제 서비스 클래스명은 SetSingularHandlingForce 인데
+#      DSR_ROBOT2.py 는 SetSingularityHandlingForce 를 참조 → import 자체가 NameError.
+#  (2) 서비스 이름 prefix 가 비어 있어 클라이언트가 /<ns>/aux_control/... 을 부르지만
+#      dsr_controller2 는 /<ns>/dsr_controller2/... 로 광고 → 호출이 영원히 대기.
+RUN f=/opt/dsr_ws/src/doosan-robot2/dsr_common2/imp/DSR_ROBOT2.py \
+ && sed -i 's/SetSingularityHandlingForce/SetSingularHandlingForce/g' "$f" \
+ && sed -i -E "s|^_srv_name_prefix([[:space:]]*)=[[:space:]]*''|_srv_name_prefix\1= 'dsr_controller2/'|" "$f"
+
+# gazebo / moveit / mobile 패키지는 이 워크스페이스가 쓰지 않고 무거운 외부 스택(gz, moveit)을
+# 끌어오므로 제외한다.
+# --symlink-install 은 쓰지 않는다 — install 트리가 build 트리를 가리키게 되어, 이미지 크기를
+# 줄이려고 build/ 를 지우면 오버레이가 통째로 깨진다(패키지 조회 불가).
+RUN set +u \
+ && source /opt/ros/${ROS_DISTRO}/setup.bash \
+ && cd /opt/dsr_ws \
+ && colcon build \
+      --packages-skip dsr_gazebo2 dsr_moveit2 dsr_mobile_wbc2 dsr_example2 dsr_tests \
+ && rm -rf /opt/dsr_ws/build /opt/dsr_ws/log
+
+# 컨테이너를 host 사용자(비 root)로 돌리므로 root 로 빌드된 오버레이에 읽기/실행 권한을 연다.
+# (특히 dsr_common2/bin/run_drcf.sh — virtual 모드 에뮬레이터 기동에 exec 권한이 필요.)
+RUN chmod -R a+rX /opt/dsr_ws/install
+
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+WORKDIR /ws
+ENTRYPOINT ["/entrypoint.sh"]
+CMD ["bash"]
