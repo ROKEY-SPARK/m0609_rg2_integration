@@ -16,6 +16,7 @@ install(
   PROGRAMS
     scripts/gripper_joint_state_publisher.py
     scripts/gripper_virtual_node.py
+    scripts/pick_place_demo.py
   DESTINATION lib/${PROJECT_NAME}
 )
 

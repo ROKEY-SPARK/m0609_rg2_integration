@@ -119,7 +119,7 @@ Visualization Manager:
         Durability Policy: Volatile
         History Policy: Keep Last
         Reliability Policy: Best Effort
-        Value: /camera/color/image_raw
+        Value: /camera/camera/color/image_raw
       Value: true
     - Class: rviz_default_plugins/Image
       Enabled: true
@@ -133,7 +133,7 @@ Visualization Manager:
         Durability Policy: Volatile
         History Policy: Keep Last
         Reliability Policy: Best Effort
-        Value: /camera/aligned_depth_to_color/image_raw
+        Value: /camera/camera/aligned_depth_to_color/image_raw
       Value: true
     - Class: rviz_default_plugins/PointCloud2
       Alpha: 1
@@ -163,7 +163,7 @@ Visualization Manager:
         Durability Policy: Volatile
         History Policy: Keep Last
         Reliability Policy: Best Effort
-        Value: /camera/depth/color/points
+        Value: /camera/camera/depth/color/points
       Use Fixed Frame: true
       Use rainbow: true
       Value: true
@@ -192,7 +192,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz_default_plugins/Orbit
-      Distance: 3.49351621
+      Distance: 2.2
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.0599999987
         Stereo Focal Distance: 1
@@ -201,13 +201,13 @@ Visualization Manager:
       Focal Point:
         X: 0
         Y: 0
-        Z: 0
+        Z: 0.6
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.0500000007
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.00999999978
-      Pitch: 0.785398006
+      Pitch: 0.3
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
       Yaw: 0.785398006
