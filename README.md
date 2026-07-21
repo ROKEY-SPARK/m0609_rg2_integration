@@ -265,16 +265,41 @@ ros2 launch m0609_rg2_bringup bringup.launch.py
 
 | 토픽 | 설명 |
 |------|------|
-| `/camera/camera/color/image_raw` | RGB 컬러 이미지 |
-| `/camera/camera/aligned_depth_to_color/image_raw` | 컬러 정렬 뎁스 이미지 |
-| `/camera/camera/depth/color/points` | RGB 포인트클라우드 |
-| `/camera/camera/color/camera_info` | 컬러 카메라 내부 파라미터 |
+| `/camera/color/image_raw` | RGB 컬러 이미지 |
+| `/camera/aligned_depth_to_color/image_raw` | 컬러 정렬 뎁스 이미지 |
+| `/camera/depth/color/points` | RGB 포인트클라우드 |
+| `/camera/color/camera_info` | 컬러 카메라 내부 파라미터 |
 
-`camera/camera` 이중 네임스페이스는 realsense2_camera 의 `rs_launch.py` 기본값
-(`camera_namespace` / `camera_name` 둘 다 `camera`)과 같은 조합이다. cobot2 의 소비자
-(`object_detection` / `pick_and_place_text`)가 이 경로를 구독하므로 바꾸면 안 된다.
+realsense2_camera 는 스트림 토픽을 private(`~/`)으로 만들어 최종 이름이
+`/<node_namespace>/<node_name>/<stream>/...` 이 된다. 게다가 노드 자체의 기본 네임스페이스가
+드라이버 생성자에 `/camera` 로 박혀 있다(`src/realsense_node_factory.cpp` 의
+`RosNodeBase("camera", "/camera", ...)`). 그래서 아무것도 지정하지 않으면 `/camera/camera/...`
+라는 중복 경로가 나오는데, 그 한 단계는 아무 정보도 담지 않는다.
+
+이 bringup 은 노드를 `namespace='/'` + `name='camera'` 로 띄워 한 단계로 줄인다. namespace
+인자를 **생략하는 것으로는 안 된다** — 드라이버의 기본값이 그대로 살아난다.
+
+TF frame_id 는 토픽 이름과 무관하게 `camera_name` 파라미터(기본 `camera`)에서 나오므로
+URDF 의 `camera_link` / `camera_*_optical_frame` 은 그대로다. 노드 이름과 `camera_name` 을
+서로 다르게 주면 토픽과 프레임이 조용히 갈라진다.
+
+소비자는 절대 경로를 박지 않고 **상대 이름 + remap** 으로 붙는다 — 아래 "소비자 배선" 참조.
 
 `default.rviz` 사전 구성 display: Color Image / Depth Image / PointCloud2 / RobotModel.
+
+### 소비자 배선
+
+카메라 토픽을 읽는 노드는 상대 이름(`color/image_raw` 등)을 구독하고, 실행 시 remap 으로
+카메라 네임스페이스에 붙인다. 토픽 이름이 노드 소스가 아니라 기동 지점에 있으므로 카메라를
+옮기거나 이름을 바꿔도 소비자 코드를 고칠 일이 없다.
+
+```bash
+# cobot2 의 ImgNode 는 카메라 토픽만 구독하므로 노드 스코프 네임스페이스 remap 한 줄이면 된다.
+ros2 run object_detection object_detection --ros-args -r img_node:__ns:=/camera
+```
+
+`img_node:` 접두사를 빼면 안 된다 — 프로세스 전역 `__ns` 는 같은 프로세스의
+`object_detection_node` 까지 옮겨 `/get_3d_position` 서비스 경로가 끊긴다.
 
 ---
 
@@ -379,6 +404,7 @@ M0609_RG2_Integration/
 | cobot2 `RG` → 가상 그리퍼 우회 | 확인됨 |
 | `~/cobot_ws` 심볼릭 링크 레이아웃 colcon 빌드 (5 패키지) | 확인됨 |
 | `rt_host` 가 렌더된 URDF 의 ros2_control 파라미터에 반영 | 확인됨 |
-| RealSense 노드가 `camera/camera` 네임스페이스로 기동 | 확인됨 (노드 이름 기준) |
+| RealSense 노드가 `/camera` 단일 네임스페이스로 기동 | **미검증** — 카메라 하드웨어 필요 |
 | real 모드 (실 로봇 / 실 그리퍼 / 실 카메라) | **미검증** — 하드웨어 필요 |
 | RealSense 실제 토픽 발행 (`camera:=true`) | **미검증** — 카메라 하드웨어 필요 |
+| 소비자 remap 배선 (`img_node:__ns:=/camera`) | 이름 해석은 확인됨, 실제 영상 수신은 **미검증** |

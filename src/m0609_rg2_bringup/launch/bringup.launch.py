@@ -216,14 +216,25 @@ def generate_launch_description():
         "'", LaunchConfiguration('mode'), "' == 'real' or '",
         LaunchConfiguration('camera'), "' == 'true'"
     ])
-    # namespace='camera' + name='camera' 는 realsense2_camera 의 rs_launch.py 기본값
-    # (camera_namespace / camera_name 둘 다 'camera')과 같은 조합이다. 그래야 토픽이
-    # /camera/camera/color/image_raw 형태로 나와 cobot2 의 realsense.py 구독자와 맞는다.
+    # 토픽은 /camera/color/image_raw 형태로 나온다.
+    #
+    # realsense2_camera 는 스트림 토픽을 private('~/')으로 만들어(upstream src/rs_node_setup.cpp)
+    # 최종 이름이 '/<node_namespace>/<node_name>/<stream>/...' 이 된다. 그리고 노드 자체의 기본
+    # 네임스페이스가 생성자에 '/camera' 로 박혀 있다(upstream src/realsense_node_factory.cpp:34
+    # RosNodeBase("camera", "/camera", ...)). 그래서 아무것도 안 주면 /camera/camera/... 라는
+    # 중복 경로가 나오는데, 그 한 단계는 아무 정보도 담지 않는다.
+    # namespace 인자를 생략하는 것으로는 안 되고(드라이버 기본값이 그대로 살아난다) 루트를
+    # 명시해야 한 단계로 줄어든다.
+    #
+    # TF frame_id 는 이것과 무관하게 camera_name 파라미터(기본 'camera')에서 나오므로
+    # URDF 의 camera_link / camera_*_optical_frame 은 그대로다. 노드 이름과 camera_name 을
+    # 다르게 주면 토픽과 프레임이 조용히 갈라지니 함께 바꿀 것.
+    #
     # 프로파일 값은 cobot2_bringup 에서 실측 검증된 조합을 그대로 가져왔다.
     realsense_node = Node(
         package='realsense2_camera',
         executable='realsense2_camera_node',
-        namespace='camera',
+        namespace='/',
         name='camera',
         parameters=[{
             'enable_color': True,
