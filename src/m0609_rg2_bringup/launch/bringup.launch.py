@@ -20,7 +20,7 @@ import os
 
 from ament_index_python.packages import PackageNotFoundError, get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, ExecuteProcess, LogInfo, RegisterEventHandler
+from launch.actions import DeclareLaunchArgument, ExecuteProcess, RegisterEventHandler
 from launch.conditions import IfCondition
 from launch.event_handlers import OnProcessExit
 from launch.substitutions import (
@@ -294,19 +294,7 @@ def generate_launch_description():
         condition=IfCondition(LaunchConfiguration('rviz')),
     )
 
-    # 실기인데 카메라를 안 켠 경우만 알린다. 카메라 없이 도는 것 자체는 정상이지만, yolo 쪽은
-    # 토픽이 없으면 에러 없이 대기만 하므로 아무 표시가 없으면 원인을 찾기 어렵다.
-    camera_off_notice = LogInfo(
-        condition=IfCondition(PythonExpression([
-            "'", LaunchConfiguration('mode'), "' == 'real' and '",
-            LaunchConfiguration('camera'), "' != 'true'"
-        ])),
-        msg='[bringup] mode:=real 이지만 camera:=true 가 없어 RealSense 드라이버를 띄우지 '
-            '않습니다. yolo 파이프라인을 쓰려면 camera:=true 를 주거나 카메라를 따로 기동하세요.',
-    )
-
     return LaunchDescription(args + [
-        camera_off_notice,
         emulator_cleanup,
         start_emulator,
         control_node,
