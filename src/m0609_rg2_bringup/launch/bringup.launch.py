@@ -20,7 +20,7 @@ import os
 
 from ament_index_python.packages import PackageNotFoundError, get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, ExecuteProcess, RegisterEventHandler
+from launch.actions import DeclareLaunchArgument, ExecuteProcess, LogInfo, RegisterEventHandler
 from launch.conditions import IfCondition
 from launch.event_handlers import OnProcessExit
 from launch.substitutions import (
@@ -86,8 +86,8 @@ def generate_launch_description():
             description='실기 RT control 채널 IP. dsr_bringup2 upstream 기본값과 동일',
         ),
         DeclareLaunchArgument(
-            'camera', default_value='false',
-            description='RealSense 드라이버 기동 여부. mode:=real 이면 항상 기동',
+            'camera', default_value='false', choices=['true', 'false'],
+            description='RealSense 드라이버 기동 여부(mode 와 무관). 카메라를 따로 띄우려면 false',
         ),
         DeclareLaunchArgument('rviz', default_value='true', description='RViz 기동 여부'),
     ]
@@ -244,12 +244,11 @@ def generate_launch_description():
     )
 
     # ── RealSense 드라이버 ────────────────────────────────────────────
-    # 기본은 real 모드에서만 기동(가상 시뮬에 USB 카메라를 묶지 않기 위함).
-    # 가상 모드에서도 영상이 필요하면 camera:=true 로 opt-in.
-    camera_enabled = PythonExpression([
-        "'", LaunchConfiguration('mode'), "' == 'real' or '",
-        LaunchConfiguration('camera'), "' == 'true'"
-    ])
+    # mode 와 무관하게 camera 인자만 본다. 예전에는 mode:=real 이면 camera 값을 무시하고
+    # 무조건 켰는데, 그러면 실기에서 카메라를 따로 띄워 보는 절차가 불가능하고
+    # (launch 가 이미 USB 장치와 /camera 노드 이름을 점유한다) camera:=false 라는
+    # 명시적 요청이 조용히 무시된다.
+    camera_enabled = LaunchConfiguration('camera')
     # 토픽은 /camera/color/image_raw 형태로 나온다.
     #
     # realsense2_camera 는 스트림 토픽을 private('~/')으로 만들어(upstream src/rs_node_setup.cpp)
@@ -295,7 +294,19 @@ def generate_launch_description():
         condition=IfCondition(LaunchConfiguration('rviz')),
     )
 
+    # 실기인데 카메라를 안 켠 경우만 알린다. 카메라 없이 도는 것 자체는 정상이지만, yolo 쪽은
+    # 토픽이 없으면 에러 없이 대기만 하므로 아무 표시가 없으면 원인을 찾기 어렵다.
+    camera_off_notice = LogInfo(
+        condition=IfCondition(PythonExpression([
+            "'", LaunchConfiguration('mode'), "' == 'real' and '",
+            LaunchConfiguration('camera'), "' != 'true'"
+        ])),
+        msg='[bringup] mode:=real 이지만 camera:=true 가 없어 RealSense 드라이버를 띄우지 '
+            '않습니다. yolo 파이프라인을 쓰려면 camera:=true 를 주거나 카메라를 따로 기동하세요.',
+    )
+
     return LaunchDescription(args + [
+        camera_off_notice,
         emulator_cleanup,
         start_emulator,
         control_node,
