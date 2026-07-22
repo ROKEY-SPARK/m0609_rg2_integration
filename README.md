@@ -137,8 +137,19 @@ source install/setup.bash
 
 ## 실행
 
+**전제: doosan-robot2(jazzy) 가 검색 경로에 있어야 한다.** 이 패키지는 팔 URDF·컨트롤러 설정·
+에뮬레이터 러너를 전부 거기서 가져온다. 없으면 launch 가 무엇이 빠졌는지 짚어 주며 멈춘다.
+방법은 둘 중 하나다.
+
 ```bash
 source /opt/ros/jazzy/setup.bash
+
+# (a) 이 워크스페이스에 doosan-robot2 를 직접 두고 함께 빌드한 경우 — 위 "빌드" 절 그대로
+source ~/M0609_RG2_Integration/install/setup.bash
+
+# (b) DSR 이 이미 있는 워크스페이스(예: 인스톨러가 만든 ~/cobot_ws)를 겹쳐 쓰는 경우
+#     — DSR 쪽을 먼저 source 해야 한다
+source ~/cobot_ws/install/setup.bash
 source ~/M0609_RG2_Integration/install/setup.bash
 ```
 

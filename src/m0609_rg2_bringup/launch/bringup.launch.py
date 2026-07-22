@@ -18,7 +18,7 @@
 """
 import os
 
-from ament_index_python.packages import get_package_share_directory
+from ament_index_python.packages import PackageNotFoundError, get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, ExecuteProcess, RegisterEventHandler
 from launch.conditions import IfCondition
@@ -35,7 +35,41 @@ from launch_ros.parameter_descriptions import ParameterValue
 from launch_ros.substitutions import FindPackageShare
 
 
+# 이 패키지는 팔 URDF·컨트롤러·에뮬레이터 러너를 전부 doosan-robot2 에서 가져온다. 없으면
+# 기동이 xacro 안쪽의 PackageNotFoundError 로 터지는데, 그 트레이스백만 봐서는 무엇을 설치해야
+# 하는지 알 수 없다. 그래서 launch 를 만들기 전에 먼저 확인하고 해법까지 같이 알려준다.
+_REQUIRED_DSR_PACKAGES = {
+    'dsr_description2': '팔 URDF + ros2_control 태그',
+    'dsr_controller2':  '컨트롤러 설정',
+    'dsr_bringup2':     'DRCF 에뮬레이터 러너 (mode:=virtual 에 필요)',
+}
+
+
+def _assert_dsr_available():
+    """doosan-robot2 패키지가 검색 경로에 있는지 확인하고, 없으면 해법과 함께 실패한다."""
+    missing = []
+    for pkg, why in _REQUIRED_DSR_PACKAGES.items():
+        try:
+            get_package_share_directory(pkg)
+        except PackageNotFoundError:
+            missing.append(f'  - {pkg} ({why})')
+    if not missing:
+        return
+    raise RuntimeError(
+        'DSR 패키지를 찾을 수 없어 bringup 을 시작할 수 없습니다.\n'
+        + '\n'.join(missing)
+        + '\n\n이 패키지는 doosan-robot2(jazzy) 위에서만 동작합니다. 둘 중 하나로 해결하세요.\n'
+        '  1) 이 워크스페이스에 직접 두기 — src 에 clone 후 다시 빌드:\n'
+        '       git clone https://github.com/ROKEY-SPARK/doosan-robot2_jazzy.git src/doosan-robot2\n'
+        '       colcon build --symlink-install\n'
+        '  2) 이미 DSR 이 있는 워크스페이스를 겹쳐 쓰기 — 이 워크스페이스보다 먼저 source:\n'
+        '       source ~/cobot_ws/install/setup.bash\n'
+        '       source install/setup.bash\n'
+    )
+
+
 def generate_launch_description():
+    _assert_dsr_available()
 
     args = [
         DeclareLaunchArgument(
