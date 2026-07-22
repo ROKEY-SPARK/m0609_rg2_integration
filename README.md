@@ -5,6 +5,18 @@ Doosan M0609 협동로봇 + OnRobot RG2 그리퍼 + RealSense D435 브라켓 통
 `ros2_jazzy_test` 인스톨러가 만든 `~/cobot_ws` (DSR 드라이버 + cobot2 애플리케이션) 위에
 오버레이로 얹어 쓰는 것을 전제로 한다.
 
+## 브랜치
+
+이 레포는 ROS 2 배포판별로 브랜치를 나눠 관리한다.
+
+| 브랜치 | 대상 | 상태 |
+|--------|------|------|
+| `main` = `jazzy` | ROS 2 Jazzy / Ubuntu 24.04 | 현행 개발 라인 |
+| `humble` | ROS 2 Humble / Ubuntu 22.04 | 마이그레이션 이전 스냅샷 — 유지보수만 |
+
+`ros2_jazzy_test` 인스톨러는 `resources/config.sh` 의 `M0609_REF`(기본 `jazzy`)로 이 레포를
+clone 한다. 다른 배포판을 쓰려면 그 값을 바꾼다.
+
 ---
 
 ## 요구사항
