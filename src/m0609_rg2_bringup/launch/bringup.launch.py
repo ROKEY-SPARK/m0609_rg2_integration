@@ -20,7 +20,7 @@ import os
 
 from ament_index_python.packages import PackageNotFoundError, get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, ExecuteProcess, RegisterEventHandler
+from launch.actions import DeclareLaunchArgument, ExecuteProcess, RegisterEventHandler, TimerAction
 from launch.conditions import IfCondition
 from launch.event_handlers import OnProcessExit
 from launch.substitutions import (
@@ -284,6 +284,14 @@ def generate_launch_description():
         output='screen',
     )
 
+    # 카메라를 다른 노드보다 늦게 띄운다. initial_reset=True 는 기동 시 USB 하드웨어 리셋(장치가
+    # 버스에서 잠깐 빠졌다 재열거)을 거는데, 에뮬레이터(docker)·ros2_control·rviz 가 동시에 뜨는
+    # 고부하 창에서 이 재열거가 지연되면 드라이버가 리셋 직전의 낡은 fd 로 VIDIOC_QBUF 를 던져
+    # "No such device"(ENODEV)로 죽고 회복하지 못한다(실측: mode:=virtual camera:=true 에서 매번 재현,
+    # 카메라만 따로 띄우면 정상). 나머지가 자리잡은 뒤 리셋이 일어나게 지연해 그 경합을 피한다.
+    # period 는 고정 지연 — 더 느린 머신에서 여전히 경합하면 값을 키운다.
+    camera_delayed = TimerAction(period=8.0, actions=[realsense_node])
+
     rviz_node = Node(
         package='rviz2',
         executable='rviz2',
@@ -305,6 +313,6 @@ def generate_launch_description():
         gripper_joint_state_publisher,
         joint_state_publisher_node,
         robot_state_publisher,
-        realsense_node,
+        camera_delayed,
         rviz_node,
     ])
