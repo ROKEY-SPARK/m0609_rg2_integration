@@ -247,7 +247,14 @@ def generate_launch_description():
         executable='robot_state_publisher',
         name='robot_state_publisher',
         output='both',
-        parameters=[{'robot_description': robot_description}],
+        parameters=[{
+            'robot_description': robot_description,
+            # 기본 20Hz 스로틀. /joint_states 를 100Hz 로 넣어도 /tf 가 ~18Hz 로
+            # 깎여, 30Hz 포인트클라우드(stamp 지연 ~40ms)의 stamp 시각 TF lookup 이
+            # 실측 27% 실패했다(RViz PointCloud2 status error/OK 반복의 직접 원인).
+            # 100 으로 올리면 /tf ~64Hz, 실패 0% (599 프레임 실측).
+            'publish_frequency': 100.0,
+        }],
     )
 
     # ── RealSense 드라이버 ────────────────────────────────────────────
