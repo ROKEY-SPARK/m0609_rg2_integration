@@ -230,7 +230,14 @@ def generate_launch_description():
         package='joint_state_publisher',
         executable='joint_state_publisher',
         name='joint_state_publisher',
-        parameters=[{'source_list': ['/dsr01/joint_states', '/gripper_joint_states']}],
+        parameters=[{
+            'source_list': ['/dsr01/joint_states', '/gripper_joint_states'],
+            # 기본 10Hz 로 두면 robot_state_publisher 의 /tf 도 10Hz 가 되어,
+            # 30Hz 포인트클라우드(stamp 지연 ~40ms)가 자기 stamp 시각의 TF 를
+            # 못 받아 RViz message filter 에서 주기적으로 드롭된다(status
+            # error/OK 반복). 원 소스 /dsr01/joint_states 가 100Hz 라 맞춘다.
+            'rate': 100,
+        }],
     )
 
     # ── robot_state_publisher ─────────────────────────────────────────
