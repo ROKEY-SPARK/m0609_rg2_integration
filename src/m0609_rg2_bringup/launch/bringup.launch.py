@@ -282,6 +282,11 @@ def generate_launch_description():
             # "No matching stream for texture") cloud 가 rgb 없이 발행된다 —
             # RViz 기본 설정(RGB8 transformer)은 rgb 를 요구하므로 표시가 깨진다.
             'pointcloud.stream_filter': 2,
+            # rs_launch.py 는 IMU 를 기본 off 로 두지만 launch 를 우회하면 켜진 채
+            # 뜨고, D435i 에서 "Motion Module failure" 하드웨어 에러를 뱉는다.
+            # 이 파이프라인은 IMU 를 쓰지 않는다.
+            'enable_accel': False,
+            'enable_gyro': False,
             'initial_reset': True,
         }],
         condition=IfCondition(camera_enabled),
