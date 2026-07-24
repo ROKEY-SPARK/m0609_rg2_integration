@@ -278,6 +278,10 @@ def generate_launch_description():
             'enable_rgbd': True,
             'enable_sync': True,
             'pointcloud.enable': True,
+            # 2 = color. 미지정 시 0(ANY)으로 떠서 텍스처 매칭이 실패하고(경고
+            # "No matching stream for texture") cloud 가 rgb 없이 발행된다 —
+            # RViz 기본 설정(RGB8 transformer)은 rgb 를 요구하므로 표시가 깨진다.
+            'pointcloud.stream_filter': 2,
             'initial_reset': True,
         }],
         condition=IfCondition(camera_enabled),
