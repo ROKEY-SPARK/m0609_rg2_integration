@@ -109,7 +109,6 @@ ros2 run m0609_rg2_bringup pick_place_demo.py
       /dsr01/joint_states ────────────────→ joint_state_publisher → robot_state_publisher → RViz
 ```
 
-두 모드가 같은 토픽 체인을 쓴다 — RViz 하위 경로에 모드 분기 없음.
 
 ## TF 구조
 
@@ -133,9 +132,6 @@ world
                                                                     └── camera_infra2_frame / camera_infra2_optical_frame
 ```
 
-- `world → base_link` = `world_fixed` (URDF 내부, fixed)
-- `tool0 → rg2_base_link` = `joint0` (fixed) / `tool0 → bracket_link` = `tool0_to_bracket` (fixed)
-- `rg2_finger_joint` 외 그리퍼 조인트는 전부 mimic — 이 하나만 발행하면 손가락 전체가 따라온다
 
 ---
 
